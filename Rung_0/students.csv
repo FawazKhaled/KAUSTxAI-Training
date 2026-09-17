@@ -1,0 +1,6 @@
+student_type,student_id,name,enrollment_year,research_topic,supervisor,course,letter_grade
+regular,1001,Fawaz,2020,,,Math,A
+regular,1001,Fawaz,2020,,,Science,A-
+regular,1002,Ahmed,2021,,,,
+graduate,1003,Sara,2022,Machine Learning,Dr. Abdullah,Python,A
+graduate,1003,Sara,2022,Machine Learning,Dr. Abdullah,Statistics,B+
