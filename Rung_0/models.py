@@ -79,40 +79,86 @@ class GraduateStudent(Student):
 
 def save_students(students: list[Student], filename: str):
     with open(filename, "w", newline="", encoding="utf-8") as file:
-        writer = csv.writer(file)
-
-        # Header row
-        writer.writerow([
+        columns = [
+            "student_type",
             "student_id",
             "name",
             "enrollment_year",
-        ])
+            "research_topic",
+            "supervisor",
+            "course",
+            "letter_grade",
+        ]
 
-        # One row for every student
+        writer = csv.DictWriter(file, fieldnames=columns)
+        writer.writeheader()
+
         for student in students:
-            writer.writerow([
-                student.student_id,
-                student.name,
-                student.enrollment_year,
-            ])
+            # Graduate students have a few extra values to save
+            if isinstance(student, GraduateStudent):
+                student_type = "graduate"
+                research_topic = student.research_topic
+                supervisor = student.supervisor or ""
+            else:
+                student_type = "regular"
+                research_topic = ""
+                supervisor = ""
+
+            # This gives students without grades an empty CSV row
+            if student.transcript:
+                transcript_rows = student.transcript.items()
+            else:
+                transcript_rows = [("", "")]
+
+            # Each course is stored in its own row
+            for course, letter_grade in transcript_rows:
+                writer.writerow({
+                    "student_type": student_type,
+                    "student_id": student.student_id,
+                    "name": student.name,
+                    "enrollment_year": student.enrollment_year,
+                    "research_topic": research_topic,
+                    "supervisor": supervisor,
+                    "course": course,
+                    "letter_grade": letter_grade,
+                })
 
 
 def load_students(filename: str) -> list[Student]:
-    students = []
+    students_by_id: dict[int, Student] = {}
 
     with open(filename, "r", newline="", encoding="utf-8") as file:
         reader = csv.DictReader(file)
 
         for row in reader:
-            student = Student(
-                student_id=int(row["student_id"]),
-                name=row["name"],
-                enrollment_year=int(row["enrollment_year"]),
-            )
+            student_id = int(row["student_id"])
 
-            students.append(student)
+            # Only create the student if they have not been loaded yet
+            if student_id not in students_by_id:
+                if row["student_type"] == "graduate":
+                    student = GraduateStudent(
+                        student_id=student_id,
+                        name=row["name"],
+                        enrollment_year=int(row["enrollment_year"]),
+                        research_topic=row["research_topic"],
+                        supervisor=row["supervisor"] or None,
+                    )
+                else:
+                    student = Student(
+                        student_id=student_id,
+                        name=row["name"],
+                        enrollment_year=int(row["enrollment_year"]),
+                    )
 
-    return students
+                students_by_id[student_id] = student
+
+            # Empty courses belong to students who have no grades yet
+            if row["course"]:
+                students_by_id[student_id].transcript[row["course"]] = (
+                    row["letter_grade"]
+                )
+
+    return list(students_by_id.values())
 
 
 if __name__ == "__main__":
@@ -122,15 +168,32 @@ if __name__ == "__main__":
 
     ahmed = Student(1002, "Ahmed", 2021)
 
-    students = [fawaz, ahmed]
+    sara = GraduateStudent(
+        student_id=1003,
+        name="Sara",
+        enrollment_year=2022,
+        research_topic="Machine Learning",
+        supervisor="Dr. Abdullah",
+    )
+
+    sara.add_grade("Python", 95)
+    sara.add_grade("Statistics", 87)
+
+    students = [fawaz, ahmed, sara]
 
     save_students(students, "students.csv")
 
     loaded_students = load_students("students.csv")
 
     for student in loaded_students:
-        print(
-            student.student_id,
-            student.name,
-            student.enrollment_year,
-        )
+        print()
+        print("Student type:", type(student).__name__)
+        print("Student ID:", student.student_id)
+        print("Name:", student.name)
+        print("Enrollment year:", student.enrollment_year)
+        print("Transcript:", student.transcript)
+        print("GPA:", student.gpa)
+
+        if isinstance(student, GraduateStudent):
+            print("Research topic:", student.research_topic)
+            print("Supervisor:", student.supervisor)
