@@ -93,7 +93,6 @@ class Student:
             f"({self.enrollment_year}), GPA: {self.gpa:.2f}"
         )
 
-
 class GraduateStudent(Student):
     def __init__(
         self,
